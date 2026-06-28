@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>源阅读书源转换工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.4.12/src/ace.js" type="text/javascript" charset="utf-8"></script>
+    <style>
+      body {
+        margin: 10px 30px 0;
+        padding: 0;
+      }
+
+      #editor {
+        border: 3px solid #0e0e0e;
+        font-size: 16px;
+        height: 500px;
+        margin: 10px auto;
+      }
+
+      button {
+        height: 30px;
+        border: none;
+        border-radius: 5px;
+        background-color: #4CAF50;
+        color: #fff;
+        cursor: pointer;
+        margin-right: 8px;
+      }
+
+      button:last-of-type {
+        margin-right: 0;
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      .footer-inner {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 10px;
+        padding: 10px 0;
+      }
+
+      .footer-inner a {
+        text-decoration: none;
+        padding: 5px;
+      }
+
+      .footer-inner a:hover {
+        color: #4CAF50;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>源阅读书源转换工具</h1>
+    <input type="file" id="fileInput" accept=".json,.txt" style="display: none;" />
+    <button id="replace-btn">正则替换</button>
+    <button id="format-btn">JS格式化</button>
+    <button id="upload-btn">上传文件</button>
+    <button id="download-btn">下载文件</button>
+    <button id="copy-btn">一键复制</button>
+    <div id="editor"></div>
+        <div class="footer-inner">
+        <a href="https://www.yckceo.com/yuedu/shuyuan/index.html" target="_blank">源仓库</a>
+        <a href="https://yuedu.miaogongzi.net/gx.html" target="_blank">猫公子源</a>
+        <a href="https://rc.real9.cn/" target="_blank">源阅读书源转换工具</a>
+        <a href="https://yuedu.juhua.fun/tool" target="_blank">美化发现工具</a>
+    </div>
+    <script>
+      const editor = ace.edit('editor');
+      editor.setTheme('ace/theme/github');
+      editor.session.setMode('ace/mode/json');
+      editor.setOptions({
+        useWrapMode: true,
+        fontSize: 16,
+        showPrintMargin: false
+      });
+      editor.getSession().setUseWorker(false);
+
+      const copyBtn = document.getElementById('copy-btn');
+      const formatBtn = document.getElementById('format-btn');
+      const replaceBtn = document.getElementById('replace-btn');
+      const downloadBtn = document.getElementById('download-btn');
+      const uploadBtn = document.getElementById('upload-btn');
+      const fileInput = document.getElementById('fileInput');
+
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(editor.getValue());
+          alert('已复制到剪贴板');
+        } catch (error) {
+          alert('复制失败，请手动复制');
+        }
+      });
+
+      formatBtn.addEventListener('click', () => {
+        const jsonText = editor.getValue();
+        try {
+          const jsonObject = JSON.parse(jsonText);
+          editor.setValue(JSON.stringify(jsonObject, null, 4), -1);
+        } catch (error) {
+          alert('JSON 无效，请检查输入');
+        }
+      });
+
+      replaceBtn.addEventListener('click', () => {
+        editor.setValue(replaceContent(editor.getValue()), -1);
+      });
+
+      downloadBtn.addEventListener('click', () => {
+        const content = editor.getValue();
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'output.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+
+      uploadBtn.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', event => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => editor.setValue(e.target.result, -1);
+        reader.readAsText(file);
+      });
+
+      function replaceContent(text) {
+        const rules = [
+          [/"List": "id\./g, '"List": "#'],
+          [/"List": "class\./g, '"List": ".' ],
+          [/"List": "(.*?)@/g, '"List": "$1 '],
+          [/"List": "(.*?)\.0/g, '"List": "$1:nth-child(1)'],
+          [/"List": "(.*?)\.1/g, '"List": "$1:nth-child(2)'],
+          [/"List": "(.*?)\.2/g, '"List": "$1:nth-child(3)'],
+          [/"List": "(.*?)!0/g, '"List": "$1:not(:nth-of-type(1))'],
+          [/"List": "(.*?)!1/g, '"List": "$1:not(:nth-of-type(2))'],
+          [/^.*lastUpdateTime.*$/gm, '']
+        ];
+
+        return rules.reduce((result, [pattern, replacement]) => result.replace(pattern, replacement), text);
+      }
+    </script>
+  </body>
+</html>

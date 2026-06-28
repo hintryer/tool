@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8" />
+    <title>自制 Markdown 编辑器</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/editor.md@1.5.0/css/editormd.min.css">
+    <link rel="shortcut icon" href="https://pandao.github.io/editor.md/favicon.ico" type="image/x-icon" />
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f6f8fa;
+        }
+
+        #layout {
+            width: 100%;
+            height: 100vh;
+            padding: 10px;
+        }
+
+        #test-editormd {
+            width: 100%;
+            height: 100%;
+        }
+
+        .editormd-preview-container {
+            overflow: auto;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/editor.md@1.5.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/editor.md@1.5.0/editormd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/hintryer/cdn/MiniDialog/MiniDialog.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/hintryer/cdn/html2md.js"></script>
+</head>
+<body>
+    <div id="layout">
+        <div id="test-editormd">
+            <textarea style="display:none;"></textarea>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        $(function() {
+            const STORAGE_KEY = 'tool-markdown-content';
+            const testEditor = editormd('test-editormd', {
+                path: 'https://cdn.jsdelivr.net/npm/editor.md@1.5.0/lib/',
+                watch: true,
+                saveHTMLToTextarea: true,
+                placeholder: '在此处输入 Markdown 内容',
+                searchReplace: true,
+                toolbarIcons: toolbarIcons,
+                toolbarIconsClass: {
+                    save: 'fa-save',
+                    HTML2MD: 'fa-html5',
+                    HTMLCode: 'fa-code'
+                },
+                toolbarIconTexts: {
+                    format: '格式化'
+                },
+                toolbarHandlers: {
+                    save: saveMarkdown,
+                    format: formatMarkdown,
+                    HTML2MD: convertHtmlToMarkdown,
+                    HTMLCode: showHtmlDialog
+                },
+                lang: {
+                    toolbar: {
+                        save: '保存为 Markdown 文件',
+                        format: '格式化 Markdown',
+                        HTML2MD: 'HTML 转 MD 文件',
+                        HTMLCode: '查看 HTML 代码'
+                    }
+                },
+                onload: function() {
+                    loadMarkdown();
+                    this.addKeyMap({'Ctrl-S': () => saveMarkdown()});
+                },
+                onchange: function() {
+                    localStorage.setItem(STORAGE_KEY, this.getMarkdown());
+                }
+            });
+
+            function toolbarIcons() {
+                return [
+                    'undo', 'redo', '|',
+                    'bold', 'del', 'italic', 'quote', 'ucwords', 'uppercase', 'lowercase', '|',
+                    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', '|',
+                    'list-ul', 'list-ol', 'hr', '|',
+                    'link', 'reference-link', 'image', 'code', 'preformatted-text', 'code-block', 'table', 'datetime', 'html-entities', 'pagebreak', '|',
+                    'goto-line', 'watch', 'preview', 'fullscreen', 'clear', 'search', '|',
+                    'help', 'info', '|',
+                    'save', 'HTML2MD', 'HTMLCode', '|', 'format'
+                ];
+            }
+
+            function saveMarkdown() {
+                const markdown = testEditor.getMarkdown();
+                downloadBlob(markdown, 'markdown.md', 'text/markdown;charset=utf-8;');
+            }
+
+            function formatMarkdown() {
+                const markdown = testEditor.getMarkdown()
+                    .replace(/(\r?\n){2,}/g, '\n\n')
+                    .trim();
+                testEditor.setMarkdown(markdown);
+            }
+
+            function convertHtmlToMarkdown() {
+                Dialog.prompt({
+                    title: '请输入 HTML 代码',
+                    placeholder: '将 HTML 粘贴到此处',
+                    autofocus: true,
+                    type: 'textarea',
+                    callback(value) {
+                        if (value) {
+                            testEditor.setMarkdown(html2md(value));
+                        }
+                    }
+                });
+            }
+
+            function showHtmlDialog() {
+                const htmlContent = testEditor.getHTML();
+                Dialog({
+                    title: 'HTML 代码',
+                    content: htmlContent,
+                    draggable: true,
+                    ok: {
+                        text: '复制',
+                        notClose: false,
+                        callback: () => {
+                            navigator.clipboard.writeText(htmlContent).catch(() => {
+                                alert('复制失败，请手动复制');
+                            });
+                        }
+                    },
+                    cancel: {
+                        text: '关闭',
+                        show: true
+                    }
+                });
+            }
+
+            function loadMarkdown() {
+                const savedMarkdown = localStorage.getItem(STORAGE_KEY);
+                if (savedMarkdown) {
+                    testEditor.setMarkdown(savedMarkdown);
+                }
+            }
+
+            function downloadBlob(content, filename, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        });
+    </script>
+</body>
+</html>
