@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vditor + markdownlint</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor/dist/index.css" />
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --border: #e5e7eb;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --success: #16a34a;
+      --error: #dc2626;
+      --warning: #d97706;
+      --shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      padding: 18px;
+    }
+
+    .app {
+      max-width: 1500px;
+      height: calc(100vh - 36px);
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: #fbfdff;
+      flex-wrap: wrap;
+    }
+
+    .toolbar h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      margin-right: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    button:hover {
+      border-color: #9ca3af;
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #fff;
+    }
+
+    .primary:hover {
+      background: #1d4ed8;
+    }
+
+    .secondary {
+      background: #f3f4f6;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-rows: 1fr 220px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    #vditor {
+      width: 100%;
+      min-height: 0;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+    }
+
+    .result-box {
+      padding: 12px 18px 18px;
+      background: #fafbfc;
+      overflow: auto;
+    }
+
+    .result-box h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .status {
+      margin: 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #eef2ff;
+      border: 1px solid #dbeafe;
+      color: var(--muted);
+    }
+
+    .status.success {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: var(--success);
+    }
+
+    .status.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: var(--error);
+    }
+
+    .status.warning {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      color: var(--warning);
+    }
+
+    ul.issue-list {
+      list-style: none;
+      margin: 10px 0 0;
+      padding: 0;
+    }
+
+    ul.issue-list li {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .issue-line {
+      color: var(--error);
+      font-weight: 600;
+    }
+
+    .issue-rule {
+      color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="toolbar">
+      <h1>Vditor + markdownlint</h1>
+      <button id="checkBtn" class="primary">检查 Markdown</button>
+      <button id="fixBtn" class="secondary">修复全部</button>
+      <button id="sampleBtn" class="secondary">填充示例</button>
+      <button id="clearBtn" class="secondary">清空</button>
+    </div>
+
+    <div class="workspace">
+      <div id="vditor"></div>
+
+      <div class="result-box">
+        <h2>检查结果</h2>
+        <div id="result">
+          <p class="status">尚未检查，点击“检查 Markdown”开始校验。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.module = { exports: {} };
+    window.global = window;
+    window.__non_webpack_require__ = function (name) {
+      if (name === 'fs') {
+        return {
+          access: function () {},
+          accessSync: function () {},
+          readFile: function () {},
+          readFileSync: function () { return ''; }
+        };
+      }
+      if (name === 'os') {
+        return {
+          EOL: '\n',
+          homedir: function () { return ''; }
+        };
+      }
+      if (name === 'path') {
+        return {
+          resolve: function (p) { return p; },
+          sep: '/'
+        };
+      }
+      return {};
+    };
+    window.require = window.__non_webpack_require__;
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/vditor/dist/index.min.js"></script>
+  <script src="./markdownlint/markdownlint.min.js"></script>
+  <script>
+    const resultEl = document.getElementById('result');
+    const markdownlint = (window.module && window.module.exports) ? window.module.exports : window.markdownlint;
+
+    const vditor = new Vditor('vditor', {
+      height: '100%',
+      mode: 'sv',
+      placeholder: '在这里输入 Markdown 内容…',
+      theme: 'classic',
+      cache: { enable: false },
+      toolbar: [
+        'emoji',
+        'headings',
+        'bold',
+        'italic',
+        'strike',
+        '|',
+        'list',
+        'ordered-list',
+        'check',
+        'quote',
+        'line',
+        'code',
+        'inline-code',
+        'link',
+        'table',
+        '|',
+        'undo',
+        'redo',
+        'edit-mode',
+        'preview',
+        'fullscreen'
+      ]
+    });
+
+    function renderStatus(message, type = 'info') {
+      const cssClass = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+      resultEl.innerHTML = `<p class="status ${cssClass}">${message}</p>`;
+    }
+
+    function checkMarkdown() {
+      if (!markdownlint || !markdownlint.lint) {
+        renderStatus('当前环境缺少 markdownlint 运行入口，无法检查。', 'error');
+        return;
+      }
+
+      const markdown = vditor.getValue();
+      renderStatus('正在检查中…', 'info');
+
+      markdownlint.lint(markdown, (err, results) => {
+        if (err) {
+          renderStatus(`检查出错：${err}`, 'error');
+          return;
+        }
+
+        if (!results || results.length === 0) {
+          renderStatus('恭喜，未发现 Markdown 规范问题。', 'success');
+          return;
+        }
+
+        let html = '<ul class="issue-list">';
+        results.forEach((item) => {
+          const line = item.lineNumber || 1;
+          const rule = item.ruleNames && item.ruleNames[0] ? item.ruleNames[0] : 'unknown';
+          const detail = item.ruleDescription || 'Markdown 规则问题';
+          html += `
+            <li>
+              <span class="issue-line">第 ${line} 行</span>
+              <span class="issue-rule">：${detail}（${rule}）</span>
+            </li>
+          `;
+        });
+        html += '</ul>';
+
+        resultEl.innerHTML = html;
+      });
+    }
+
+    function fixMarkdown() {
+      if (!markdownlint || !markdownlint.lint || !markdownlint.applyFixes) {
+        renderStatus('当前环境缺少修复能力，无法自动修正。', 'warning');
+        return;
+      }
+
+      const markdown = vditor.getValue();
+      renderStatus('正在尝试修复…', 'info');
+
+      markdownlint.lint(markdown, (err, results) => {
+        if (err) {
+          renderStatus(`修复失败：${err}`, 'error');
+          return;
+        }
+
+        if (!results || results.length === 0) {
+          renderStatus('当前内容没有需要修复的问题。', 'success');
+          return;
+        }
+
+        const fixed = markdownlint.applyFixes(markdown, results);
+        if (fixed === markdown) {
+          renderStatus('本次检查中没有可修复的规则项。', 'warning');
+          return;
+        }
+
+        vditor.setValue(fixed);
+        renderStatus('已尝试自动修复，建议再次检查确认。', 'success');
+      });
+    }
+
+    document.getElementById('checkBtn').addEventListener('click', checkMarkdown);
+    document.getElementById('fixBtn').addEventListener('click', fixMarkdown);
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      vditor.setValue('');
+      renderStatus('已清空内容。可重新输入 Markdown。');
+    });
+
+    document.getElementById('sampleBtn').addEventListener('click', () => {
+      const sample = `# 标题示例\n\n这是一个段落。\n\n- 列表项 1\n- 列表项 2\n\n> 这是一条引用\n\n\`\`\`js\nconsole.log('hello markdownlint');\n\`\`\`\n\n| 列表 | 说明 |\n| --- | --- |\n| A | 示例 |\n`;
+      vditor.setValue(sample);
+      renderStatus('已填充示例内容。点击“检查 Markdown”即可校验。');
+    });
+  </script>
+</body>
+</html>
