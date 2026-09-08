@@ -1,10 +1,6 @@
-
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8"/>
-  <link href="default.css" rel="stylesheet" type="text/css"/>
-  <link href="favicon.svg" rel="icon" type="image/svg+xml"/>
   <meta name="description" content="Demo for markdownlint, a Node.js style checker and lint tool for Markdown/CommonMark files."/>
   <title>markdownlint demo</title>
   <base target="_blank"/>
@@ -16,6 +12,7 @@
       <div class="flex-fill"></div>
       <form>
         <input id="openFile" type="file"/>
+        <button id="fix-all-btn" type="button">全部修复</button>
       </form>
     </div>
     <div class="flex-fill flex-columns inset-side">
@@ -27,9 +24,6 @@
       <div id="violations" class="flex-fill outlined overflow-auto-scroll"></div>
     </div>
     <div class="flex-columns inset">
-      <footer><a href="https://github.com/DavidAnson/markdownlint">markdownlint project on GitHub</a></footer>
-      <div class="flex-fill"></div>
-      <footer><a href="#" id="copyLink">Copy Link</a></footer>
       <div class="flex-fill"></div>
       <footer>Copyright &copy; <a href="https://dlaa.me/">David Anson</a></footer>
     </div>

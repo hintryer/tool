@@ -223,7 +223,7 @@
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/vditor/dist/index.min.js"></script>
-  <script src="./markdownlint/markdownlint.min.js"></script>
+  <script src="./markdownlint/markdownlint-browser.min.js"></script>
   <script>
     const resultEl = document.getElementById('result');
     const markdownlint = (window.module && window.module.exports) ? window.module.exports : window.markdownlint;
@@ -335,6 +335,16 @@
 
     document.getElementById('checkBtn').addEventListener('click', checkMarkdown);
     document.getElementById('fixBtn').addEventListener('click', fixMarkdown);
+
+    document.addEventListener('keydown', (event) => {
+      const key = event.key ? String(event.key).toLowerCase() : '';
+      const isFixShortcut = (event.ctrlKey || event.metaKey) && (event.altKey || event.shiftKey) && key === 'f';
+      if (!isFixShortcut) {
+        return;
+      }
+      event.preventDefault();
+      fixMarkdown();
+    });
 
     document.getElementById('clearBtn').addEventListener('click', () => {
       vditor.setValue('');
