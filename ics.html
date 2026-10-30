@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阴历转阳历ICS生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.2/lib/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.2/theme/dracula.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.2/lib/codemirror.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.2/mode/shell/shell.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.2/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/hintryer/cdn/js/lunar.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.2/addon/hint/show-hint.min.css">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#3B82F6',
+              secondary: '#10B981',
+              accent: '#8B5CF6',
+              dark: '#1F2937',
+              light: '#F9FAFB'
+            },
+            fontFamily: {
+              inter: ['Inter', 'system-ui', 'sans-serif'],
+            },
+          },
+        }
+      }
+    </script>
+    <style type="text/tailwindcss"> @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .code-block {
+        @apply relative rounded-lg overflow-hidden shadow-lg transition-all duration-300;
+      }
+      .btn-hover {
+        @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300;
+      }
+      .card-hover {
+        @apply hover:shadow-xl transition-all duration-300;
+      }
+    }
+  </style>
+  </head>
+  <body class="bg-gradient-to-br from-light to-gray-100 min-h-screen font-inter text-dark">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+      <!-- 标题区域 -->
+      <header class="text-center mb-12">
+        <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-4"> 阴历转阳历ICS生成器 </h1>
+        <p class="text-gray-600 text-lg max-w-2xl mx-auto"> 将阴历日期转换为阳历日期，并生成可导入日历的ICS文件，支持批量生成 </p>
+        <p class="text-gray-500 text-sm mt-2"> 输入格式：每行一个事件，格式为"描述,阴历日期(YYYYMMDD)"，例如：元旦,20250101 </p>
+      </header>
+      <!-- 主要内容区域 -->
+      <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- 输入区域 -->
+        <div class="card-hover bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+              <i class="fa fa-pencil-square-o text-primary text-2xl mr-3"></i>
+              <h2 class="text-xl font-bold">输入信息</h2>
+            </div>
+            <button id="example-btn" class="text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg flex items-center btn-hover">
+              <i class="fa fa-file-text-o mr-1"></i> 示例 </button>
+          </div>
+          <div class="code-block h-48 overflow-hidden">
+            <div id="input-container" class="w-full h-full">
+              <textarea id="input-textarea">元旦,20250101</textarea>
+            </div>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-4">
+            <div>
+              <label for="start-year" class="block text-sm font-medium text-gray-700 mb-1">开始年份</label>
+              <input type="number" id="start-year" min="2020" max="2099" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none" value="2025">
+            </div>
+            <div>
+              <label for="end-year" class="block text-sm font-medium text-gray-700 mb-1">结束年份</label>
+              <input type="number" id="end-year" min="2020" max="2099" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none" value="2035">
+            </div>
+          </div>
+          <button id="generate-btn" class="w-full mt-4 bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center btn-hover">
+            <i class="fa fa-magic mr-2"></i> 生成ICS文件 </button>
+        </div>
+        <!-- 输出区域 -->
+        <div class="card-hover bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+              <i class="fa fa-code text-secondary text-2xl mr-3"></i>
+              <h2 class="text-xl font-bold">输出结果</h2>
+            </div>
+            <div class="flex space-x-2">
+              <button id="copy-btn" class="text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg flex items-center btn-hover">
+                <i class="fa fa-copy mr-1"></i> 复制 </button>
+              <button id="theme-toggle" class="text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg flex items-center btn-hover">
+                <i class="fa fa-moon-o mr-1"></i> 暗色 </button>
+            </div>
+          </div>
+          <div class="code-block h-80 overflow-hidden">
+            <div id="output-container" class="w-full h-full">
+              <textarea id="output-textarea">// 生成的ICS文件内容将显示在这里
+// 包含从阴历转换而来的阳历日期
+// 以及未来十年的生日提醒事件</textarea>
+            </div>
+          </div>
+          <div class="mt-4 flex justify-between">
+            <button id="download-btn" class="bg-secondary hover:bg-secondary/90 text-white font-bold py-2 px-6 rounded-lg flex items-center btn-hover">
+              <i class="fa fa-download mr-2"></i> 下载ICS文件 </button>
+            <div class="text-sm text-gray-500 flex items-center">
+              <i class="fa fa-info-circle mr-1"></i> 点击生成后显示结果
+            </div>
+          </div>
+        </div>
+      </main>
+      <!-- 转换说明 -->
+      <section class="mt-12 bg-white rounded-2xl shadow-lg p-6 card-hover">
+        <h2 class="text-xl font-bold mb-4 flex items-center">
+          <i class="fa fa-lightbulb-o text-accent mr-3"></i> 使用说明
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h3 class="font-bold text-gray-800 mb-2">1. 输入信息</h3>
+            <p class="text-gray-600">每行输入一个事件，格式为"描述,阴历日期(YYYYMMDD)"</p>
+          </div>
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h3 class="font-bold text-gray-800 mb-2">2. 设置年份范围</h3>
+            <p class="text-gray-600">选择需要生成阳历日期的起始年份和结束年份</p>
+          </div>
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h3 class="font-bold text-gray-800 mb-2">3. 生成并下载</h3>
+            <p class="text-gray-600">点击生成按钮，将结果复制或下载为ICS文件导入日历</p>
+          </div>
+        </div>
+      </section>
+      <!-- 页脚 -->
+      <footer class="mt-12 text-center text-gray-500 text-sm">
+        <p>© 2024 阴历转阳历ICS生成器 | 使用现代Web技术构建</p>
+      </footer>
+    </div>
+    <!-- 通知组件 -->
+    <div id="notification" class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center">
+      <i class="fa fa-check-circle mr-2"></i>
+      <span id="notification-text">操作成功</span>
+    </div>
+    <script>
+      // 初始化CodeMirror编辑器
+      let inputEditor;
+      let outputEditor;
+      let isDarkTheme = true;
+
+      function initCodeEditors() {
+        // 初始化输入编辑器
+        inputEditor = CodeMirror.fromTextArea(document.getElementById('input-textarea'), {
+          mode: 'shell',
+          theme: 'default',
+          lineNumbers: true,
+          lineWrapping: true,
+          scrollbarStyle: 'native',
+          extraKeys: {
+            "Tab": function(cm) {
+              cm.replaceSelection("  "); // 使用两个空格代替Tab
+            }
+          }
+        });
+        // 初始化输出编辑器
+        outputEditor = CodeMirror.fromTextArea(document.getElementById('output-textarea'), {
+          mode: 'shell',
+          theme: 'default',
+          lineNumbers: true,
+          readOnly: true,
+          lineWrapping: false,
+          scrollbarStyle: 'native'
+        });
+        // 设置编辑器高度
+        inputEditor.setSize('100%', '100%');
+        outputEditor.setSize('100%', '100%');
+      }
+      // 切换主题
+      function toggleTheme() {
+        isDarkTheme = !isDarkTheme;
+        outputEditor.setOption('theme', isDarkTheme ? 'dracula' : 'default');
+        document.getElementById('theme-toggle').innerHTML = isDarkTheme ? ' < i class = "fa fa-moon-o mr-1" >< /i> 暗色' : ' < i class = "fa fa-sun-o mr-1" >< /i> 亮色';
+      }
+      // 阴历转阳历函数
+      function lunarToSolar(lunarDateStr) {
+        // 解析输入的阴历日期字符串
+        const year = parseInt(lunarDateStr.substring(0, 4));
+        const month = parseInt(lunarDateStr.substring(4, 6));
+        const day = parseInt(lunarDateStr.substring(6, 8));
+        // 创建阴历日期对象
+        const lunar = new Lunar.fromYmd(year, month, day);
+        // 转换为阳历日期
+        const solar = lunar.getSolar();
+        // 格式化为YYYYMMDD并返回
+        return `${solar.getYear()}${padZero(solar.getMonth())}${padZero(solar.getDay())}`;
+      }
+      // 辅助函数：数字补零
+      function padZero(num) {
+        return num < 10 ? '0' + num : num;
+      }
+      // 解析输入并生成ICS文件内容
+      function generateICSFromInput(inputText, startYear, endYear) {
+        const lines = inputText.split('\n');
+        let icsContent = '';
+        let processedEvents = 0;
+        let errorEvents = 0;
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue; // 跳过空行
+          const parts = trimmedLine.split(',');
+          if (parts.length !== 2) {
+            console.error(`格式错误: ${trimmedLine}`);
+            errorEvents++;
+            continue;
+          }
+          const description = parts[0].trim();
+          const lunarDateStr = parts[1].trim();
+          // 验证阴历日期格式
+          const dateRegex = /^\d{8}$/;
+          if (!dateRegex.test(lunarDateStr)) {
+            console.error(`日期格式错误: ${lunarDateStr}`);
+            errorEvents++;
+            continue;
+          }
+          // 生成指定年份范围的阳历日期
+          for (let year = startYear; year <= endYear; year++) {
+            const targetLunarDateStr = `${year}${lunarDateStr.substring(4)}`;
+            try {
+              // 转换为阳历日期
+              const solarDateStr = lunarToSolar(targetLunarDateStr);
+              // 创建ICS事件并添加到内容中
+              icsContent += createICSEvent(description, solarDateStr) + '\n' + '\n';
+              processedEvents++;
+            } catch (error) {
+              console.error(`生成${year}年事件失败: ${error.message}`);
+              errorEvents++;
+            }
+          }
+        }
+        // 添加VCALENDAR头部和尾部
+        if (icsContent) {
+          icsContent = `BEGIN:VCALENDAR
+PRODID:-//Chen Wei//Chinese Lunar Calendar//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:重要日子
+X-WR-TIMEZONE:Asia/Shanghai
+X-WR-CALDESC:我的重要日子\n
+${icsContent}END:VCALENDAR`;
+        } else {
+          icsContent = `# 没有生成任何事件\n# 处理了 ${lines.length} 行，成功 ${processedEvents} 个，失败 ${errorEvents} 个`;
+        }
+        return icsContent;
+      }
+      // 创建单个ICS事件
+      function createICSEvent(description, dateString) {
+        const generateUID = () => {
+          const randomPart = Math.random().toString(36).substring(2, 10);
+          return `${dateString}${randomPart}@example.com`;
+        };
+        const dtstamp = '20250505T000000Z'; // 固定时间戳
+        return `BEGIN:VEVENT
+UID:${generateUID()}
+DTSTAMP:${dtstamp}
+DTSTART;VALUE=DATE:${dateString}
+SUMMARY:${description}
+TRANSP:TRANSPARENT
+END:VEVENT`;
+      }
+      // 显示通知
+      function showNotification(text) {
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notification-text');
+        notificationText.textContent = text;
+        notification.classList.remove('translate-y-20', 'opacity-0');
+        notification.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => {
+          notification.classList.remove('translate-y-0', 'opacity-100');
+          notification.classList.add('translate-y-20', 'opacity-0');
+        }, 3000);
+      }
+      // 复制到剪贴板
+      function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+          showNotification('内容已复制到剪贴板');
+        }).catch(err => {
+          console.error('复制失败: ', err);
+          showNotification('复制失败，请手动复制');
+        });
+      }
+      // 下载文件
+      function downloadFile(content, filename, contentType) {
+        const a = document.createElement('a');
+        const file = new Blob([content], {
+          type: contentType
+        });
+        a.href = URL.createObjectURL(file);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showNotification(`已下载文件: ${filename}`);
+      }
+      // 页面加载后初始化事件监听
+      document.addEventListener('DOMContentLoaded', () => {
+        const generateBtn = document.getElementById('generate-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const exampleBtn = document.getElementById('example-btn');
+        const startYearInput = document.getElementById('start-year');
+        const endYearInput = document.getElementById('end-year');
+        // 初始化代码编辑器
+        initCodeEditors();
+        // 生成按钮点击事件
+        generateBtn.addEventListener('click', () => {
+          const inputText = inputEditor.getValue();
+          const startYear = parseInt(startYearInput.value);
+          const endYear = parseInt(endYearInput.value);
+          // 验证输入
+          if (!inputText.trim()) {
+            showNotification('请输入事件信息');
+            return;
+          }
+          if (startYear > endYear) {
+            showNotification('开始年份不能大于结束年份');
+            return;
+          }
+          // 生成ICS内容
+          try {
+            const icsContent = generateICSFromInput(inputText, startYear, endYear);
+            outputEditor.setValue(icsContent);
+            // 滚动到输出区域
+            document.querySelector('.code-block').scrollIntoView({
+              behavior: 'smooth'
+            });
+            // 启用复制和下载按钮
+            copyBtn.disabled = false;
+            downloadBtn.disabled = false;
+          } catch (error) {
+            outputEditor.setValue(`生成失败: ${error.message}`);
+            showNotification('生成失败，请检查输入');
+            console.error('生成失败:', error);
+          }
+        });
+        // 复制按钮点击事件
+        copyBtn.addEventListener('click', () => {
+          copyToClipboard(outputEditor.getValue());
+        });
+        // 下载按钮点击事件
+        downloadBtn.addEventListener('click', () => {
+          const filename = '批量生成.ics';
+          downloadFile(outputEditor.getValue(), filename, 'text/calendar;charset=utf-8');
+        });
+        // 主题切换按钮点击事件
+        themeToggle.addEventListener('click', toggleTheme);
+        // 示例按钮点击事件
+        exampleBtn.addEventListener('click', () => {
+          const exampleText = `晴生日,19910427
+霞生日,19620419
+涵生日,20191012
+旺生日,19921211
+伟生日,19901206
+英生日,19891227
+丽生日,19870105
+山祭日,20200219
+结念日,20181108`;
+          inputEditor.setValue(exampleText);
+          showNotification('已加载示例数据');
+        });
+        // 初始禁用复制和下载按钮
+        copyBtn.disabled = true;
+        downloadBtn.disabled = true;
+      });
+    </script>
+  </body>
+</html>
