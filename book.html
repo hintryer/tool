@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>阅读源工具</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        min-height: 100vh;
+        background: #f2f4f6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+      }
+      /* 头部 */
+      .header {
+        width: 100%;
+        max-width: 380px;
+        text-align: center;
+        margin: 40px 0 30px;
+      }
+      .header h1 {
+        font-size: 24px;
+        color: #222;
+        margin-bottom: 6px;
+      }
+      .header p {
+        font-size: 14px;
+        color: #666;
+      }
+      /* 内容区 */
+      .content {
+        width: 100%;
+        max-width: 380px;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+        flex: 1;
+      }
+      .item {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .title {
+        font-size: 17px;
+        font-weight: 600;
+        color: #333;
+        padding-left: 4px;
+      }
+      /* 按钮行 */
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        flex: 1 1 calc(50% - 4px);
+        padding: 14px 6px;
+        border-radius: 12px;
+        background: #4285f4;
+        color: white;
+        font-size: 14px;
+        text-align: center;
+        text-decoration: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        border: none;
+        cursor: pointer;
+      }
+      .btn-gray {
+        background: #6b7280;
+      }
+      .btn-copy {
+        background: #10b981;
+      }
+      .btn:active {
+        opacity: 0.85;
+      }
+      /* 尾部 */
+      .footer {
+        width: 100%;
+        max-width: 380px;
+        text-align: center;
+        padding: 30px 0 20px;
+        font-size: 12px;
+        color: #999;
+      }
+      /* 复制提示 */
+      .toast {
+        position: fixed;
+        bottom: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        display: none;
+        z-index: 999;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 头部 -->
+    <div class="header">
+      <h1>阅读源导入工具</h1>
+    </div>
+
+    <!-- 内容 -->
+    <div class="content">
+      <div class="item">
+        <div class="title">书源</div>
+        <div class="btn-row">
+          <a
+            class="btn"
+            href="yuedu://booksource/importonline?src=https://cdn.jsdelivr.net/gh/hintryer/cdn/book/BookSource.json"
+            >jsDelivr 导入</a
+          >
+          <button
+            class="btn btn-copy"
+            onclick="
+              copyLink(
+                'https://raw.githubusercontent.com/hintryer/cdn/refs/heads/main/book/BookSource.json',
+              )
+            "
+          >
+            GitHub 直链复制
+          </button>
+          <a
+            class="btn btn-gray"
+            href="yuedu://booksource/importonline?src=https://raw.githubusercontent.com/hintryer/cdn/refs/heads/main/book/BookSource.json"
+            >GitHub 直链导入</a
+          >
+          <button
+            class="btn btn-copy"
+            onclick="
+              copyLink(
+                'https://cdn.jsdelivr.net/gh/hintryer/cdn/book/BookSource.json',
+              )
+            "
+          >
+            jsDelivr 直链复制
+          </button>
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="title">阅读样式</div>
+        <div class="btn-row">
+          <a
+            class="btn"
+            href="yuedu://readstyle/importonline?src=https://cdn.jsdelivr.net/gh/hintryer/cdn/book/init.srs"
+            >jsDelivr 导入</a
+          >
+          <button
+            class="btn btn-copy"
+            onclick="
+              copyLink(
+                'https://raw.githubusercontent.com/hintryer/cdn/refs/heads/main/book/init.srs',
+              )
+            "
+          >
+            GitHub 直链复制
+          </button>
+          <a
+            class="btn btn-gray"
+            href="yuedu://readstyle/importonline?src=https://raw.githubusercontent.com/hintryer/cdn/refs/heads/main/book/init.srs"
+            >GitHub 直链导入</a
+          >
+          <button
+            class="btn btn-copy"
+            onclick="
+              copyLink('https://cdn.jsdelivr.net/gh/hintryer/cdn/book/init.srs')
+            "
+          >
+            jsDelivr 直链复制
+          </button>
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="title">净化源</div>
+        <div class="btn-row">
+          <a
+            class="btn"
+            href="yuedu://replaceRule/importonline?src=https://cdn.jsdelivr.net/gh/hintryer/cdn/book/ReplaceRule.json"
+            >jsDelivr 导入</a
+          >
+          <button
+            class="btn btn-copy"
+            onclick="
+              copyLink(
+                'https://raw.githubusercontent.com/hintryer/cdn/refs/heads/main/book/ReplaceRule.json',
+              )
+            "
+          >
+            GitHub 直链复制
+          </button>
+          <a
+            class="btn btn-gray"
+            href="yuedu://replaceRule/importonline?src=https://raw.githubusercontent.com/hintryer/cdn/refs/heads/main/book/ReplaceRule.json"
+            >GitHub 直链导入</a
+          >
+          <button
+            class="btn btn-copy"
+            onclick="
+              copyLink(
+                'https://cdn.jsdelivr.net/gh/hintryer/cdn/book/ReplaceRule.json',
+              )
+            "
+          >
+            jsDelivr 直链复制
+          </button>
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="title">订阅源</div>
+        <div class="btn-row">
+          <a
+            class="btn"
+            href="yuedu://rsssource/importonline?src=https://cdn.jsdelivr.net/gh/hintryer/cdn/book/RssSource.json"
+            >jsDelivr 导入</a
+          >
+          <button
+            class="btn btn-copy"
+            onclick="
+              copyLink(
+                'https://raw.githubusercontent.com/hintryer/cdn/refs/heads/main/book/RssSource.json',
+              )
+            "
+          >
+            GitHub 直链复制
+          </button>
+          <a
+            class="btn btn-gray"
+            href="yuedu://rsssource/importonline?src=https://raw.githubusercontent.com/hintryer/cdn/refs/heads/main/book/RssSource.json"
+            >GitHub 直链导入</a
+          >
+          <button
+            class="btn btn-copy"
+            onclick="
+              copyLink(
+                'https://cdn.jsdelivr.net/gh/hintryer/cdn/book/RssSource.json',
+              )
+            "
+          >
+            jsDelivr 直链复制
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 尾部 -->
+    <div class="footer">© 2025 阅读源工具 | 仅供个人使用</div>
+
+    <!-- 复制提示弹窗 -->
+    <div class="toast" id="toast">链接已复制</div>
+
+    <script>
+      function copyLink(url) {
+        navigator.clipboard
+          .writeText(url)
+          .then(() => {
+            const toast = document.getElementById("toast");
+            toast.style.display = "block";
+            setTimeout(() => {
+              toast.style.display = "none";
+            }, 1500);
+          })
+          .catch((err) => {
+            alert("复制失败，请手动复制");
+          });
+      }
+    </script>
+  </body>
+</html>
